@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Start stack
         run: docker compose up --build --detach postgres api-1 api-2 nginx
