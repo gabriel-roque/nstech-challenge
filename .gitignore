@@ -1,0 +1,21 @@
+PLAN.md
+
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+*.nupkg
+coverage/
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+
+# Local environment
+.env
+docker-compose.override.yml
+

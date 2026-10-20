@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OrderService.Domain/OrderService.Domain.csproj" />
+    <Project Path="src/OrderService.Application/OrderService.Application.csproj" />
+    <Project Path="src/OrderService.Infrastructure/OrderService.Infrastructure.csproj" />
+    <Project Path="src/OrderService.Api/OrderService.Api.csproj" />
+    <Project Path="src/OrderService.Migrator/OrderService.Migrator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OrderService.Domain.Tests/OrderService.Domain.Tests.csproj" />
+    <Project Path="tests/OrderService.Architecture.Tests/OrderService.Architecture.Tests.csproj" />
+    <Project Path="tests/OrderService.Integration.Tests/OrderService.Integration.Tests.csproj" />
+  </Folder>
+</Solution>
+
