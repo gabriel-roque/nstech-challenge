@@ -178,6 +178,41 @@ Categorias cobertas:
 - 20 pedidos disputando 10 unidades, provando ausência de estoque negativo;
 - health checks, OpenAPI e Scalar.
 
+### Consistência distribuída e ACID
+
+Os testes xUnit de integração usam uma única instância da API. Para validar o comportamento distribuído real, suba o Compose atual em um terminal:
+
+```bash
+docker compose up --build -d
+```
+
+Em outro terminal, execute:
+
+```bash
+./ops/verify-consistency.sh
+```
+
+O script roda o Gatling com JavaScript pelo Nginx em `http://localhost:8080`, confirma por `X-Instance-Id` que as duas APIs participaram e então consulta o PostgreSQL diretamente com `docker compose exec`. Não é necessário publicar a porta do banco nem usar outro arquivo Compose.
+
+A suíte valida:
+
+- criação idempotente simultânea com a mesma chave;
+- disputa de 20 pedidos por 10 unidades, sem estoque negativo;
+- confirmações e cancelamentos duplicados sem repetir efeitos;
+- confirmação contra cancelamento do mesmo pedido;
+- rollback atômico de pedido com vários itens;
+- contenção entre produtos acessados em ordens opostas;
+- totais, estados e estoques persistidos no banco;
+- durabilidade após `SIGKILL` e reinício do PostgreSQL.
+
+O teste cria dados identificados por execução. Eles são removidos quando tudo passa e preservados em caso de falha para diagnóstico. O relatório Markdown, o estado observado do banco, as respostas concorrentes e o HTML do Gatling ficam em `TestResults/consistency/<run>/`.
+
+Gatling JS exige Node.js 24 e npm 11. Se as versões instaladas forem anteriores, o script usa versões isoladas via `npx`; a primeira execução pode precisar baixá-las. `BASE_URL` e `DEMO_PASSWORD` podem ser sobrescritas por variáveis de ambiente. Para investigar sem executar o teste destrutivo de durabilidade, use `CONSISTENCY_SKIP_RESTART=1`.
+
+As duas APIs limitam seus pools Npgsql a 40 conexões cada, deixando margem no PostgreSQL para o migrator, health checks e inspeções. Um pooler externo como PgBouncer passa a ser indicado quando o número de réplicas ou de clientes de banco crescer; para duas réplicas fixas, limitar os pools locais evita exceder `max_connections` sem adicionar outra camada operacional.
+
+### Carga e desempenho
+
 Os testes de carga exigem o [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) instalado na máquina e a aplicação disponível em `http://localhost:8080`. Inicie a stack em um terminal:
 
 ```bash
@@ -226,7 +261,7 @@ Diagramas de dados e sequência estão em [docs/architecture.md](docs/architectu
 
 ## CI
 
-O workflow de pull request restaura com lock files, compila com nullable/analyzers e warnings como erros, verifica formatação, executa testes/cobertura, detecta model changes sem migration, gera migration bundle, audita pacotes, constrói o Compose, valida health/OpenAPI/Scalar, executa o smoke k6 e confirma respostas das duas instâncias. O stress completo é manual.
+O workflow de pull request restaura com lock files, compila com nullable/analyzers e warnings como erros, verifica formatação, executa testes/cobertura, detecta model changes sem migration, gera migration bundle, audita pacotes, constrói o Compose, valida health/OpenAPI/Scalar, executa a suíte distribuída de consistência/ACID, executa o smoke k6 e confirma respostas das duas instâncias. O stress completo é manual.
 
 Dependabot acompanha NuGet, Docker e GitHub Actions. Workflows têm permissões somente de leitura e cancelam execuções antigas da mesma branch.
 

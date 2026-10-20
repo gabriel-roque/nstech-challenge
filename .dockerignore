@@ -7,5 +7,6 @@
 .vscode/
 TestResults/
 coverage/
+tests/gatling/node_modules/
+tests/gatling/target/
 PLAN.md
-

@@ -15,7 +15,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -27,6 +27,13 @@ jobs:
           global-json-file: global.json
           cache: true
           cache-dependency-path: '**/packages.lock.json'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/gatling/package-lock.json
 
       - name: Restore tools and packages
         run: |
@@ -82,6 +89,12 @@ jobs:
       - name: Audit NuGet dependencies
         run: dotnet list OrderService.slnx package --vulnerable --include-transitive
 
+      - name: Install and audit Gatling dependencies
+        working-directory: tests/gatling
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
       - name: Build and start Compose
         run: docker compose up --build --detach postgres api-1 api-2 nginx
 
@@ -104,6 +117,11 @@ jobs:
           done | tr -d '\r' | awk -F': ' 'tolower($1)=="x-instance-id" {print $2}' | sort -u > TestResults/instances.txt
           grep --fixed-strings api-1 TestResults/instances.txt
           grep --fixed-strings api-2 TestResults/instances.txt
+
+      - name: Distributed consistency and ACID
+        env:
+          CONSISTENCY_SKIP_INSTALL: '1'
+        run: ./ops/verify-consistency.sh
 
       - name: Setup k6
         uses: grafana/setup-k6-action@v1

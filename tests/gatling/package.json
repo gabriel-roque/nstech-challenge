@@ -1,0 +1,21 @@
+{
+  "name": "order-service-consistency-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24",
+    "npm": ">=11"
+  },
+  "dependencies": {
+    "@gatling.io/core": "3.16.1",
+    "@gatling.io/http": "3.16.1"
+  },
+  "devDependencies": {
+    "@gatling.io/cli": "3.16.1"
+  },
+  "scripts": {
+    "build": "gatling build",
+    "consistency": "node scripts/verify-consistency.mjs"
+  }
+}

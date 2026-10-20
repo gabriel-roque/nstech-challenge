@@ -3,7 +3,7 @@ name: order-service
 x-api-environment: &api-environment
   ASPNETCORE_ENVIRONMENT: Development
   ASPNETCORE_URLS: http://+:8080
-  ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=orders;Username=orders;Password=orders
+  ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=orders;Username=orders;Password=orders;Maximum Pool Size=40
   Jwt__Issuer: order-service
   Jwt__Audience: order-service-clients
   Jwt__SigningKey: ${JWT_SIGNING_KEY:-development-only-signing-key-change-me-1234567890}
@@ -30,7 +30,7 @@ services:
       context: .
       target: migrator
     environment:
-      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=orders;Username=orders;Password=orders
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=orders;Username=orders;Password=orders;Maximum Pool Size=5
       Seed__DemoPassword: ${DEMO_PASSWORD:-Demo@123456}
     depends_on:
       postgres:

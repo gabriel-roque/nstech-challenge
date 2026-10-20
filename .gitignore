@@ -8,6 +8,8 @@ TestResults/
 *.suo
 *.nupkg
 coverage/
+tests/gatling/node_modules/
+tests/gatling/target/
 
 # IDE / OS
 .vs/
@@ -18,4 +20,3 @@ coverage/
 # Local environment
 .env
 docker-compose.override.yml
-
