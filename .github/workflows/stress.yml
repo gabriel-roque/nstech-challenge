@@ -21,8 +21,13 @@ jobs:
       - name: Start stack
         run: docker compose up --build --detach postgres api-1 api-2 nginx
 
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.3.0'
+
       - name: Run five-minute stress profile
-        run: docker compose --profile stress run --rm k6-stress
+        run: k6 run tests/k6/stress.js
 
       - name: Collect logs
         if: always()
@@ -37,5 +42,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker compose --profile stress down --volumes --remove-orphans
-
+        run: docker compose down --volumes --remove-orphans

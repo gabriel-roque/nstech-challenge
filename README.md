@@ -178,21 +178,33 @@ Categorias cobertas:
 - 20 pedidos disputando 10 unidades, provando ausência de estoque negativo;
 - health checks, OpenAPI e Scalar.
 
-Smoke via Compose:
+Os testes de carga exigem o [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) instalado na máquina e a aplicação disponível em `http://localhost:8080`. Inicie a stack em um terminal:
 
 ```bash
-docker compose --profile test up --build \
-  --abort-on-container-exit --exit-code-from k6-smoke
+docker compose up --build -d
 ```
 
-Stress balanceado de cinco minutos:
+Em outro terminal, execute o smoke:
 
 ```bash
-docker compose --profile stress up --build \
-  --abort-on-container-exit --exit-code-from k6-stress
+k6 run tests/k6/smoke.js
 ```
 
-O stress sobe até 100 VUs, distribui os 10 usuários e mede p95 de leituras abaixo de 500 ms e escritas abaixo de 1 s. Os limites são uma baseline local e devem ser recalibrados com hardware, volume e SLOs reais.
+Ou execute o stress balanceado de cinco minutos:
+
+```bash
+k6 run tests/k6/stress.js
+```
+
+Os scripts usam `BASE_URL=http://localhost:8080` e `DEMO_PASSWORD=Demo@123456` por padrão. Para apontar para outro ambiente ou senha, informe as variáveis no próprio comando:
+
+```bash
+BASE_URL=http://localhost:8080 \
+DEMO_PASSWORD='outra-senha' \
+k6 run tests/k6/smoke.js
+```
+
+O k6 é executado diretamente no terminal; ele não faz parte do Compose. O stress sobe até 100 VUs, distribui os 10 usuários e mede p95 de leituras abaixo de 500 ms e escritas abaixo de 1 s. Os limites são uma baseline local e devem ser recalibrados com hardware, volume e SLOs reais.
 
 ## Arquitetura
 

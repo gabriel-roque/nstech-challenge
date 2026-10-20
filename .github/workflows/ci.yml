@@ -105,8 +105,13 @@ jobs:
           grep --fixed-strings api-1 TestResults/instances.txt
           grep --fixed-strings api-2 TestResults/instances.txt
 
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.3.0'
+
       - name: k6 smoke
-        run: docker compose --profile test run --rm k6-smoke
+        run: k6 run tests/k6/smoke.js
 
       - name: Collect Compose logs
         if: always()
@@ -121,4 +126,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker compose --profile test down --volumes --remove-orphans
+        run: docker compose down --volumes --remove-orphans
