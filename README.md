@@ -2,6 +2,24 @@
 
 API REST de pedidos em .NET 10, EF Core e PostgreSQL. A solução aplica Clean Architecture, JWT, idempotência distribuída, controle transacional de estoque e consultas paginadas. O ambiente Docker inicia duas instâncias da API atrás de um Nginx e executa migrations/seed uma única vez antes de liberar tráfego.
 
+## Sumário
+
+- [Início rápido](#início-rápido)
+  - [Recursos do Compose](#recursos-do-compose)
+- [Dados de demonstração](#dados-de-demonstração)
+- [Uso da API](#uso-da-api)
+  - [Criar pedido](#criar-pedido)
+  - [Consultar, confirmar e cancelar](#consultar-confirmar-e-cancelar)
+  - [Listar pedidos](#listar-pedidos)
+- [Erros](#erros)
+- [Desenvolvimento local](#desenvolvimento-local)
+- [Testes](#testes)
+  - [Consistência distribuída e ACID](#consistência-distribuída-e-acid)
+  - [Carga e desempenho](#carga-e-desempenho)
+- [Arquitetura](#arquitetura)
+- [CI](#ci)
+- [Limites conscientes](#limites-conscientes)
+
 ## Início rápido
 
 Pré-requisitos: Docker com Compose v2. Para iniciar toda a aplicação:
@@ -32,6 +50,22 @@ Para recriar tudo, inclusive o volume PostgreSQL (operação destrutiva para dad
 docker compose down --volumes
 docker compose up --build
 ```
+
+### Recursos do Compose
+
+O Compose aplica limites rígidos de CPU e RAM, sem swap, dimensionados para o stress de 100 VUs e para as corridas distribuídas:
+
+| Serviço | CPU máxima | RAM máxima |
+|---|---:|---:|
+| `postgres` | `0.75` | `512 MiB` |
+| `api-1` | `2.00` | `512 MiB` |
+| `api-2` | `2.00` | `512 MiB` |
+| `nginx` | `0.25` | `64 MiB` |
+| `migrator` | `0.50` | `256 MiB` |
+
+Durante a operação normal, o teto combinado é de 5 CPUs e 1,56 GiB de RAM. O migrator é one-shot e termina antes de iniciar as APIs. Para reproduzir os thresholds de carga com folga para Docker, sistema operacional e k6, recomenda-se um host com pelo menos 6 CPUs lógicas e 3 GiB disponíveis.
+
+Os números, ambiente e comandos da validação estão no [relatório de recursos e testes](docs/test-results/2026-10-21-resource-limits.md).
 
 ## Dados de demonstração
 
@@ -240,6 +274,8 @@ k6 run tests/k6/smoke.js
 ```
 
 O k6 é executado diretamente no terminal; ele não faz parte do Compose. O stress sobe até 100 VUs, distribui os 10 usuários e mede p95 de leituras abaixo de 500 ms e escritas abaixo de 1 s. Os limites são uma baseline local e devem ser recalibrados com hardware, volume e SLOs reais.
+
+Última execução completa: [resultado dos testes com limites de CPU/RAM](docs/test-results/2026-10-21-resource-limits.md).
 
 ## Arquitetura
 

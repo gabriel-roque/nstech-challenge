@@ -13,6 +13,9 @@ x-api-environment: &api-environment
 services:
   postgres:
     image: postgres:17-alpine
+    cpus: "0.75"
+    mem_limit: 512m
+    memswap_limit: 512m
     environment:
       POSTGRES_DB: orders
       POSTGRES_USER: orders
@@ -29,6 +32,9 @@ services:
     build:
       context: .
       target: migrator
+    cpus: "0.50"
+    mem_limit: 256m
+    memswap_limit: 256m
     environment:
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=orders;Username=orders;Password=orders;Maximum Pool Size=5
       Seed__DemoPassword: ${DEMO_PASSWORD:-Demo@123456}
@@ -41,6 +47,9 @@ services:
     build:
       context: .
       target: api
+    cpus: "2.00"
+    mem_limit: 512m
+    memswap_limit: 512m
     environment:
       <<: *api-environment
       InstanceId: api-1
@@ -57,6 +66,9 @@ services:
     build:
       context: .
       target: api
+    cpus: "2.00"
+    mem_limit: 512m
+    memswap_limit: 512m
     environment:
       <<: *api-environment
       InstanceId: api-2
@@ -71,6 +83,9 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
+    cpus: "0.25"
+    mem_limit: 64m
+    memswap_limit: 64m
     ports:
       - "8080:8080"
     volumes:

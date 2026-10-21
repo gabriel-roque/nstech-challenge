@@ -29,7 +29,10 @@ export function authenticate(number) {
   const response = http.post(
     `${baseUrl}/auth/token`,
     JSON.stringify({ username, password }),
-    { headers: { 'Content-Type': 'application/json' }, tags: { operation: 'write' } },
+    {
+      headers: { 'Content-Type': 'application/json' },
+      tags: { name: 'POST /auth/token', operation: 'write' },
+    },
   );
   check(response, { 'authentication succeeds': (result) => result.status === 200 });
   return response.json('accessToken');
@@ -45,4 +48,3 @@ export function authenticatedHeaders(token, idempotencyKey) {
   }
   return headers;
 }
-
