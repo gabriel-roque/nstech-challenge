@@ -162,8 +162,6 @@ O lock do pedido serializa operações concorrentes sobre o mesmo pedido. Para p
 
 O teste cria dados identificados por execução. Eles são removidos quando tudo passa e preservados em caso de falha para diagnóstico. O relatório Markdown, o estado observado do banco, as respostas concorrentes e o HTML do Gatling ficam em `TestResults/consistency/<run>/`.
 
-Gatling JS exige Node.js 24 e npm 11. Se as versões instaladas forem anteriores, o script usa versões isoladas via `npx`; a primeira execução pode precisar baixá-las. `BASE_URL` e `DEMO_PASSWORD` podem ser sobrescritas por variáveis de ambiente. Para investigar sem executar o teste destrutivo de durabilidade, use `CONSISTENCY_SKIP_RESTART=1`.
-
 As duas APIs limitam seus pools Npgsql a 40 conexões cada, deixando margem no PostgreSQL para o migrator, health checks e inspeções. Um pooler externo como PgBouncer passa a ser indicado quando o número de réplicas ou de clientes de banco crescer; para duas réplicas fixas, limitar os pools locais evita exceder `max_connections` sem adicionar outra camada operacional.
 
 ### Carga e desempenho
