@@ -45,7 +45,7 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasIndex(order => new { order.CustomerId, order.IdempotencyKey })
             .IsUnique()
-            .HasDatabaseName("ux_orders_customer_idempotency_key");
+            .HasDatabaseName(OrderDatabaseNames.CustomerIdempotencyKeyUniqueIndex);
         builder.HasIndex(order => new { order.CreatedAt, order.Id })
             .IsDescending()
             .HasDatabaseName("ix_orders_created_at_id");
@@ -57,4 +57,3 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasDatabaseName("ix_orders_customer_status_created_at_id");
     }
 }
-

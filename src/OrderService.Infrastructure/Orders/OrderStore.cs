@@ -264,11 +264,10 @@ public sealed class OrderStore(IDbContextFactory<OrderDbContext> contextFactory,
         exception.InnerException is PostgresException
         {
             SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: "ux_orders_customer_idempotency_key"
+            ConstraintName: OrderDatabaseNames.CustomerIdempotencyKeyUniqueIndex
         };
 
     private static bool IsDeadlock(Exception exception) =>
         exception is PostgresException { SqlState: PostgresErrorCodes.DeadlockDetected } ||
         exception.InnerException is not null && IsDeadlock(exception.InnerException);
 }
-

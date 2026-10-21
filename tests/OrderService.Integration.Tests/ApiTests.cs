@@ -155,6 +155,22 @@ public sealed class ApiTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("2026-01-01T00:00:00Z", HttpStatusCode.OK)]
+    [InlineData("2026-01-01T00:00:00+03:00", HttpStatusCode.OK)]
+    [InlineData("2026-01-01T00:00:00", HttpStatusCode.BadRequest)]
+    [InlineData("not-a-date", HttpStatusCode.BadRequest)]
+    public async Task PublicListRequiresIso8601DateWithExplicitOffset(
+        string from,
+        HttpStatusCode expectedStatus)
+    {
+        using var client = _factory.CreateClient();
+        using var response = await client.GetAsync(
+            $"/orders?customerId={UserOne}&from={Uri.EscapeDataString(from)}");
+
+        Assert.Equal(expectedStatus, response.StatusCode);
+    }
+
     [Fact]
     public async Task OpenApiScalarAndHealthAreAvailable()
     {

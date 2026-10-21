@@ -1,7 +1,7 @@
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OrderService.Api.Auth;
+using OrderService.Api.Binding;
 using OrderService.Api.Errors;
 using OrderService.Application.Common;
 using OrderService.Application.Contracts;
@@ -28,7 +28,7 @@ public sealed class OrdersController(
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKeyHeader,
         CancellationToken cancellationToken)
     {
-        if (!TryGetCustomerId(out var authenticatedCustomerId))
+        if (!User.TryGetCustomerId(out var authenticatedCustomerId))
         {
             return Unauthorized();
         }
@@ -73,7 +73,7 @@ public sealed class OrdersController(
     [ProducesResponseType<OrderDetailsDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Confirm(Guid id, CancellationToken cancellationToken)
     {
-        if (!TryGetCustomerId(out var customerId))
+        if (!User.TryGetCustomerId(out var customerId))
         {
             return Unauthorized();
         }
@@ -87,7 +87,7 @@ public sealed class OrdersController(
     [ProducesResponseType<OrderDetailsDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
-        if (!TryGetCustomerId(out var customerId))
+        if (!User.TryGetCustomerId(out var customerId))
         {
             return Unauthorized();
         }
@@ -101,7 +101,7 @@ public sealed class OrdersController(
     [ProducesResponseType<OrderDetailsDto>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
     {
-        if (!TryGetCustomerId(out var customerId))
+        if (!User.TryGetCustomerId(out var customerId))
         {
             return Unauthorized();
         }
@@ -140,7 +140,8 @@ public sealed class OrdersController(
             parsedStatus = value;
         }
 
-        if (!TryParseDate(from, out var parsedFrom) || !TryParseDate(to, out var parsedTo))
+        if (!Iso8601OffsetParser.TryParseOptional(from, out var parsedFrom) ||
+            !Iso8601OffsetParser.TryParseOptional(to, out var parsedTo))
         {
             return ApiErrorMapper.Validation(this, "date_invalid", "from and to must use ISO 8601 with an offset or UTC.");
         }
@@ -164,35 +165,5 @@ public sealed class OrdersController(
             new OrderListFilter(parsedCustomerId, parsedStatus, parsedFrom, parsedTo, page, pageSize),
             cancellationToken);
         return Ok(result);
-    }
-
-    private bool TryGetCustomerId(out Guid customerId)
-    {
-        var subject = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-        return Guid.TryParse(subject, out customerId) && customerId != Guid.Empty;
-    }
-
-    private static bool TryParseDate(string? text, out DateTimeOffset? value)
-    {
-        value = null;
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return true;
-        }
-
-        if (!DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed) ||
-            !(text.EndsWith('Z') || HasExplicitOffset(text)))
-        {
-            return false;
-        }
-
-        value = parsed;
-        return true;
-    }
-
-    private static bool HasExplicitOffset(string text)
-    {
-        var timeSeparator = text.IndexOf('T', StringComparison.OrdinalIgnoreCase);
-        return timeSeparator >= 0 && (text.LastIndexOf('+') > timeSeparator || text.LastIndexOf('-') > timeSeparator);
     }
 }
