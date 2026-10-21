@@ -119,12 +119,10 @@ A suíte [`verify-consistency.sh`](../../ops/verify-consistency.sh) foi executad
 | Dados após `SIGKILL` do PostgreSQL | PASS |
 | Leitura após restart | PASS |
 
-Execução Gatling final: `20261021142413-36d6673c`. Os fixtures `ACID-*` foram removidos após a validação; contagem final no banco: zero.
-
 Os artefatos detalhados locais foram gerados em:
 
 ```text
-TestResults/consistency/20261021142413-36d6673c/
+TestResults/consistency/
 ```
 
 ## Conclusão

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">Estratégia de testes em quatro camadas</title>
+  <desc id="desc">Compara testes unitários, integração xUnit, consistência distribuída Gatling e carga k6, indicando componentes percorridos e o que cada camada comprova.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1020"/><stop offset="1" stop-color="#111a31"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="7" stdDeviation="10" flood-color="#020617" flood-opacity=".35"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#64748b"/></marker>
+    <style>
+      .title{font:700 32px Inter,Segoe UI,sans-serif;fill:#f8fafc}.subtitle{font:400 16px Inter,Segoe UI,sans-serif;fill:#94a3b8}.rowtitle{font:700 19px Inter,Segoe UI,sans-serif;fill:#f8fafc}.tool{font:600 13px ui-monospace,SFMono-Regular,Consolas,monospace;fill:#e2e8f0}.node{font:600 14px Inter,Segoe UI,sans-serif;fill:#f8fafc}.small{font:400 13px Inter,Segoe UI,sans-serif;fill:#cbd5e1}.proof{font:600 14px Inter,Segoe UI,sans-serif;fill:#dbeafe}.line{stroke:#64748b;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="780" rx="28" fill="url(#bg)"/>
+  <text class="title" x="55" y="61">Estratégia de testes</text>
+  <text class="subtitle" x="55" y="91">Cada camada responde a uma pergunta diferente — nenhuma substitui a seguinte</text>
+
+  <g filter="url(#shadow)">
+    <rect x="48" y="128" width="1104" height="128" rx="20" fill="#151d31" stroke="#334155"/>
+    <rect x="48" y="128" width="9" height="128" rx="5" fill="#34d399"/>
+    <text class="rowtitle" x="83" y="165">1 · Unitários</text>
+    <text class="tool" x="83" y="190">dotnet test</text>
+    <rect x="292" y="163" width="116" height="48" rx="13" fill="#064e3b" stroke="#34d399"/>
+    <text class="node" x="350" y="192" text-anchor="middle">Domain</text>
+    <path class="line" d="M416 187H463"/>
+    <rect x="471" y="163" width="132" height="48" rx="13" fill="#064e3b" stroke="#34d399"/>
+    <text class="node" x="537" y="192" text-anchor="middle">Application</text>
+    <text class="proof" x="690" y="177">Comprova</text>
+    <text class="small" x="690" y="202">invariantes, totais, transições e fingerprints</text>
+    <text class="small" x="83" y="233">Rápidos · sem rede · sem banco</text>
+
+    <rect x="48" y="278" width="1104" height="128" rx="20" fill="#151d31" stroke="#334155"/>
+    <rect x="48" y="278" width="9" height="128" rx="5" fill="#60a5fa"/>
+    <text class="rowtitle" x="83" y="315">2 · Integração</text>
+    <text class="tool" x="83" y="340">xUnit + Testcontainers</text>
+    <rect x="292" y="313" width="106" height="48" rx="13" fill="#172554" stroke="#60a5fa"/>
+    <text class="node" x="345" y="342" text-anchor="middle">1 API</text>
+    <path class="line" d="M406 337H453"/>
+    <rect x="461" y="313" width="166" height="48" rx="13" fill="#3b0764" stroke="#a78bfa"/>
+    <text class="node" x="544" y="342" text-anchor="middle">PostgreSQL real</text>
+    <text class="proof" x="690" y="327">Comprova</text>
+    <text class="small" x="690" y="352">HTTP, EF, migration, JWT, seed e concorrência local</text>
+    <text class="small" x="83" y="383">Não passa pelo Nginx · banco efêmero isolado</text>
+
+    <rect x="48" y="428" width="1104" height="128" rx="20" fill="#151d31" stroke="#334155"/>
+    <rect x="48" y="428" width="9" height="128" rx="5" fill="#fbbf24"/>
+    <text class="rowtitle" x="83" y="465">3 · Consistência</text>
+    <text class="tool" x="83" y="490">Gatling JavaScript</text>
+    <rect x="285" y="463" width="88" height="48" rx="13" fill="#422006" stroke="#fbbf24"/>
+    <text class="node" x="329" y="492" text-anchor="middle">Nginx</text>
+    <path class="line" d="M381 487H419"/>
+    <rect x="427" y="451" width="92" height="34" rx="10" fill="#172554" stroke="#60a5fa"/>
+    <text class="node" x="473" y="474" text-anchor="middle">api-1</text>
+    <rect x="427" y="493" width="92" height="34" rx="10" fill="#172554" stroke="#60a5fa"/>
+    <text class="node" x="473" y="516" text-anchor="middle">api-2</text>
+    <path class="line" d="M527 487H565"/>
+    <rect x="573" y="463" width="86" height="48" rx="13" fill="#3b0764" stroke="#a78bfa"/>
+    <text class="node" x="616" y="483" text-anchor="middle">Banco</text>
+    <text class="small" x="616" y="500" text-anchor="middle">+ SQL</text>
+    <text class="proof" x="690" y="477">Comprova</text>
+    <text class="small" x="690" y="502">ACID, idempotência, race conditions e durabilidade</text>
+    <text class="small" x="690" y="527">Stack real do Compose · banco validado diretamente via SQL</text>
+
+    <rect x="48" y="578" width="1104" height="128" rx="20" fill="#151d31" stroke="#334155"/>
+    <rect x="48" y="578" width="9" height="128" rx="5" fill="#fb7185"/>
+    <text class="rowtitle" x="83" y="615">4 · Carga</text>
+    <text class="tool" x="83" y="640">k6 · até 100 VUs</text>
+    <rect x="285" y="613" width="88" height="48" rx="13" fill="#4c0519" stroke="#fb7185"/>
+    <text class="node" x="329" y="642" text-anchor="middle">Nginx</text>
+    <path class="line" d="M381 637H419"/>
+    <rect x="427" y="601" width="92" height="34" rx="10" fill="#172554" stroke="#60a5fa"/>
+    <text class="node" x="473" y="624" text-anchor="middle">api-1</text>
+    <rect x="427" y="643" width="92" height="34" rx="10" fill="#172554" stroke="#60a5fa"/>
+    <text class="node" x="473" y="666" text-anchor="middle">api-2</text>
+    <path class="line" d="M527 637H565"/>
+    <rect x="573" y="613" width="86" height="48" rx="13" fill="#3b0764" stroke="#a78bfa"/>
+    <text class="node" x="616" y="642" text-anchor="middle">Banco</text>
+    <text class="proof" x="690" y="627">Comprova</text>
+    <text class="small" x="690" y="652">throughput, erros e p95 de leitura/escrita</text>
+    <text class="small" x="83" y="683">Smoke curto + stress balanceado de cinco minutos</text>
+  </g>
+  <text class="small" x="55" y="745">Escopo crescente: lógica isolada → integração real → distribuição e persistência → capacidade</text>
+</svg>

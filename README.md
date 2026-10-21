@@ -2,19 +2,21 @@
 
 API REST de pedidos em .NET 10, EF Core e PostgreSQL. A solução aplica Clean Architecture, JWT, idempotência distribuída, controle transacional de estoque e consultas paginadas. O ambiente Docker inicia duas instâncias da API atrás de um Nginx e executa migrations/seed uma única vez antes de liberar tráfego.
 
+<p align="center">
+  <img src="docs/img/compose-topology.svg" alt="Topologia do Docker Compose com Nginx, duas APIs, PostgreSQL e migrator" width="100%">
+</p>
+
 ## Sumário
 
 - [Início rápido](#início-rápido)
   - [Recursos do Compose](#recursos-do-compose)
 - [Dados de demonstração](#dados-de-demonstração)
 - [Uso da API](#uso-da-api)
-  - [Criar pedido](#criar-pedido)
-  - [Consultar, confirmar e cancelar](#consultar-confirmar-e-cancelar)
   - [Listar pedidos](#listar-pedidos)
 - [Erros](#erros)
-- [Desenvolvimento local](#desenvolvimento-local)
 - [Testes](#testes)
   - [Consistência distribuída e ACID](#consistência-distribuída-e-acid)
+    - [Como as duas APIs protegem o estoque](#como-as-duas-apis-protegem-o-estoque)
   - [Carga e desempenho](#carga-e-desempenho)
 - [Arquitetura](#arquitetura)
 - [CI](#ci)
@@ -78,12 +80,6 @@ O migrator cria somente os registros ausentes. Reexecuções não restauram esto
 - IDs de produto: `10000000-0000-0000-0000-000000000001` até `...0010`
 - Moeda: `BRL`; preço: R$ 10,00 até R$ 100,00; estoque inicial: 100 unidades
 
-Em ambientes compartilhados, defina uma chave JWT forte:
-
-```bash
-JWT_SIGNING_KEY='uma-chave-aleatoria-com-pelo-menos-32-caracteres' docker compose up --build
-```
-
 ## Uso da API
 
 Acesse o painel do Scalar
@@ -91,9 +87,11 @@ Acesse o painel do Scalar
 
 <img src="docs/img/scalar.png">
 
-### Listar pedidos (Observação aos quesitos do desafio)
+### Listar pedidos
 
-A listagem é deliberadamente pública e exige `customerId`:
+> **Observação sobre os quesitos do desafio:** a listagem é deliberadamente pública e exige `customerId`.
+
+Exemplo:
 
 ```bash
 curl 'http://localhost:8080/orders?customerId=00000000-0000-0000-0000-000000000001&status=Confirmed&from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z&page=1&pageSize=20'
@@ -107,9 +105,9 @@ curl 'http://localhost:8080/orders?customerId=00000000-0000-0000-0000-0000000000
 
 Esta exceção pública foi escolhida porque o contrato exige `customerId` na listagem e não define um papel administrativo. Conhecer um ID permite consultar os resumos daquele cliente; isso é um risco aceito apenas para o desafio. Em produção, a listagem deve usar o `sub` e remover o filtro redundante, ou exigir uma policy administrativa explícita. Veja [ADR 0003](docs/adr/0003-authorization-and-public-list.md).
 
-## Erros - Detalhes no Scalar
+## Erros
 
-Falhas esperadas usam `application/problem+json` com `code`, `traceId` e, quando aplicável, `field`:
+Os detalhes também estão disponíveis no Scalar. Falhas esperadas usam `application/problem+json` com `code`, `traceId` e, quando aplicável, `field`:
 
 - `400`: contrato inválido, quantidade, moeda, datas, paginação, produto repetido ou chave ausente.
 - `401`: credencial ou JWT inválido.
@@ -122,20 +120,15 @@ Falhas esperadas usam `application/problem+json` com `code`, `traceId` e, quando
 
 `dotnet test` executa testes unitários, de arquitetura e integração. Os testes de integração usam PostgreSQL real via Testcontainers e, portanto, exigem Docker disponível.
 
+<p align="center">
+  <img src="docs/img/test-strategy.svg" alt="Quatro camadas de testes: unitários, integração, consistência distribuída e carga" width="100%">
+</p>
+
 ```bash
 dotnet test OrderService.slnx
 ```
 
-Categorias cobertas:
-
-- invariantes, total decimal, snapshot de preço e transições;
-- fingerprint e criação idempotente;
-- limites da Clean Architecture;
-- migration e seed reais;
-- JWT, propriedade de pedidos e listagem pública;
-- retries simultâneos com a mesma chave;
-- 20 pedidos disputando 10 unidades, provando ausência de estoque negativo;
-- health checks, OpenAPI e Scalar.
+Essa primeira execução cobre invariantes, arquitetura, migration, seed, JWT, propriedade dos pedidos, idempotência e concorrência local. As seções seguintes exercitam a stack distribuída pelo Nginx.
 
 ### Consistência distribuída e ACID
 
@@ -153,18 +146,19 @@ Em outro terminal, execute:
 ./ops/verify-consistency.sh
 ```
 
-O script roda o Gatling com JavaScript pelo Nginx em `http://localhost:8080`, confirma por `X-Instance-Id` que as duas APIs participaram e então consulta o PostgreSQL diretamente com `docker compose exec`. Não é necessário publicar a porta do banco nem usar outro arquivo Compose.
+<p align="center">
+  <img src="docs/img/consistency-validation.svg" alt="Fluxo da validação Gatling pelo Nginx e duas APIs, seguido de inspeção do PostgreSQL e geração do relatório" width="100%">
+</p>
 
-A suíte valida:
+O script confirma por `X-Instance-Id` que as duas APIs participaram, consulta o PostgreSQL diretamente com `docker compose exec` e só aprova a execução quando as respostas HTTP e o estado persistido são consistentes. Não é necessário publicar a porta do banco nem usar outro arquivo Compose.
 
-- criação idempotente simultânea com a mesma chave;
-- disputa de 20 pedidos por 10 unidades, sem estoque negativo;
-- confirmações e cancelamentos duplicados sem repetir efeitos;
-- confirmação contra cancelamento do mesmo pedido;
-- rollback atômico de pedido com vários itens;
-- contenção entre produtos acessados em ordens opostas;
-- totais, estados e estoques persistidos no banco;
-- durabilidade após `SIGKILL` e reinício do PostgreSQL.
+#### Como as duas APIs protegem o estoque
+
+<p align="center">
+  <img src="docs/img/stock-concurrency.svg" alt="Locks e updates condicionais no PostgreSQL impedindo efeitos duplicados e estoque negativo entre duas APIs" width="100%">
+</p>
+
+O lock do pedido serializa operações concorrentes sobre o mesmo pedido. Para pedidos diferentes disputando o mesmo produto, o `UPDATE` condicional do PostgreSQL reavalia o estoque após adquirir o lock da linha; uma atualização sem saldo afeta zero linhas e provoca rollback da transação inteira.
 
 O teste cria dados identificados por execução. Eles são removidos quando tudo passa e preservados em caso de falha para diagnóstico. O relatório Markdown, o estado observado do banco, as respostas concorrentes e o HTML do Gatling ficam em `TestResults/consistency/<run>/`.
 
@@ -206,19 +200,11 @@ O k6 é executado diretamente no terminal; ele não faz parte do Compose. O stre
 
 ## Arquitetura
 
-```text
-Domain <- Application <- Infrastructure
-             ^               ^
-             +------ API ----+
-```
+<p align="center">
+  <img src="docs/img/architecture-overview.svg" alt="Dependências da Clean Architecture e etapas da confirmação transacional de um pedido" width="100%">
+</p>
 
-- **Domain:** aggregates e invariantes, sem EF/ASP.NET.
-- **Application:** casos de uso, DTOs e portas.
-- **Infrastructure:** EF Core/Npgsql, queries, autenticação de credenciais e transações.
-- **API:** controllers, JWT, Problem Details, documentação e composition root.
-- **Migrator:** seed idempotente após o migration bundle.
-
-Consultas usam projeção direta e `AsNoTracking`; a listagem não materializa itens. Índices começam por `customer_id` nas consultas de autorização/filtro. A confirmação bloqueia o pedido com `FOR UPDATE` e baixa cada produto por `UPDATE ... WHERE available_quantity >= quantity`, ordenado por `product_id`. Qualquer falha reverte toda a transação. Cancelamento usa o mesmo lock e ordenação. Deadlocks PostgreSQL repetem a transação inteira no máximo três vezes com jitter.
+Consultas usam projeção direta e `AsNoTracking`; a listagem não materializa itens. Índices começam por `customer_id` nas consultas de autorização e filtro. A mesma estratégia transacional de lock e ordenação é usada no cancelamento.
 
 Diagramas de dados e sequência estão em [docs/architecture.md](docs/architecture.md). As decisões e alternativas estão no [índice de ADRs](docs/adr/README.md).
 
