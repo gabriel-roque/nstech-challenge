@@ -25,7 +25,7 @@ API REST de pedidos em .NET 10, EF Core e PostgreSQL. A solução aplica Clean A
 Pré-requisitos: Docker com Compose v2. Para iniciar toda a aplicação:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 Depois do health check:
@@ -48,12 +48,12 @@ Para recriar tudo, inclusive o volume PostgreSQL (operação destrutiva para dad
 
 ```bash
 docker compose down --volumes
-docker compose up --build
+docker compose up --build -d
 ```
 
 ### Recursos do Compose
 
-O Compose aplica limites rígidos de CPU e RAM, sem swap, dimensionados para o stress de 100 VUs e para as corridas distribuídas:
+O Compose aplica limites rígidos de CPU e RAM, sem swap, dimensionados para o stress de 100 VUs e para as race conditions:
 
 | Serviço | CPU máxima | RAM máxima |
 |---|---:|---:|
@@ -86,57 +86,12 @@ JWT_SIGNING_KEY='uma-chave-aleatoria-com-pelo-menos-32-caracteres' docker compos
 
 ## Uso da API
 
-Obtenha um token:
+Acesse o painel do Scalar
+- Scalar: `http://localhost:8080/scalar`
 
-```bash
-curl --request POST http://localhost:8080/auth/token \
-  --header 'Content-Type: application/json' \
-  --data '{"username":"user01","password":"Demo@123456"}'
-```
+<img src="docs/img/scalar.png">
 
-A resposta contém `accessToken`, `tokenType` e `expiresIn`. Nos exemplos seguintes, salve-o em `TOKEN` e gere uma chave UUID em `KEY`.
-
-### Criar pedido
-
-`Idempotency-Key` é obrigatório e deve ser um UUID não vazio.
-
-```bash
-curl --request POST http://localhost:8080/orders \
-  --header "Authorization: Bearer $TOKEN" \
-  --header "Idempotency-Key: $KEY" \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "customerId":"00000000-0000-0000-0000-000000000001",
-    "currency":"BRL",
-    "items":[
-      {"productId":"10000000-0000-0000-0000-000000000001","quantity":2}
-    ]
-  }'
-```
-
-A primeira chamada retorna `201 Created`. Uma repetição com a mesma chave e payload retorna `200 OK`, `Idempotency-Replayed: true`, o mesmo pedido e o mesmo `Location`. Reutilizar a chave com outro payload retorna `409 idempotency_key_reused`.
-
-Produtos repetidos no payload são rejeitados. O preço é copiado do catálogo; o cliente nunca informa preço. A criação verifica o estoque disponível, mas não o reserva: a garantia definitiva contra overselling ocorre na confirmação.
-
-### Consultar, confirmar e cancelar
-
-```bash
-curl --header "Authorization: Bearer $TOKEN" http://localhost:8080/orders/$ORDER_ID
-
-curl --request POST \
-  --header "Authorization: Bearer $TOKEN" \
-  http://localhost:8080/orders/$ORDER_ID/confirm
-
-curl --request POST \
-  --header "Authorization: Bearer $TOKEN" \
-  http://localhost:8080/orders/$ORDER_ID/cancel
-```
-
-Confirmar novamente um pedido confirmado e cancelar novamente um pedido cancelado retornam `200` sem repetir efeitos. Cancelar um pedido confirmado devolve o estoque exatamente uma vez. Confirmar um pedido cancelado retorna `409`.
-
-Nas operações protegidas, o claim JWT `sub` é a identidade confiável. Um usuário não pode criar para outro `customerId`; detalhe, confirmação e cancelamento procuram por `(orderId, customerId)` e retornam `404` para recursos de outro usuário.
-
-### Listar pedidos
+### Listar pedidos (Observação aos quesitos do desafio)
 
 A listagem é deliberadamente pública e exige `customerId`:
 
@@ -152,7 +107,7 @@ curl 'http://localhost:8080/orders?customerId=00000000-0000-0000-0000-0000000000
 
 Esta exceção pública foi escolhida porque o contrato exige `customerId` na listagem e não define um papel administrativo. Conhecer um ID permite consultar os resumos daquele cliente; isso é um risco aceito apenas para o desafio. Em produção, a listagem deve usar o `sub` e remover o filtro redundante, ou exigir uma policy administrativa explícita. Veja [ADR 0003](docs/adr/0003-authorization-and-public-list.md).
 
-## Erros
+## Erros - Detalhes no Scalar
 
 Falhas esperadas usam `application/problem+json` com `code`, `traceId` e, quando aplicável, `field`:
 
@@ -162,36 +117,6 @@ Falhas esperadas usam `application/problem+json` com `code`, `traceId` e, quando
 - `404`: pedido ausente ou pertencente a outro usuário.
 - `409`: estoque insuficiente, transição inválida ou conflito de idempotência.
 - `422`: produto inexistente ou moeda incompatível.
-
-## Desenvolvimento local
-
-Requer .NET SDK 10.0.400+ e PostgreSQL. O SDK é fixado em `global.json`.
-
-```bash
-dotnet tool restore
-dotnet restore OrderService.slnx --locked-mode
-dotnet run --project src/OrderService.Migrator
-dotnet run --project src/OrderService.Api
-```
-
-Variáveis reconhecidas:
-
-- `ConnectionStrings__Postgres`
-- `Jwt__Issuer`, `Jwt__Audience`, `Jwt__SigningKey`, `Jwt__LifetimeMinutes`
-- `Documentation__Enabled`
-- `InstanceId`
-- `Seed__DemoPassword` (migrator)
-
-Migrations não são aplicadas pelas APIs. No Docker, um EF migration bundle one-shot termina antes das duas instâncias e o executável de seed roda em seguida.
-
-Para criar uma nova migration:
-
-```bash
-dotnet ef migrations add NomeDaMigration \
-  --project src/OrderService.Infrastructure \
-  --startup-project src/OrderService.Api \
-  --output-dir Persistence/Migrations
-```
 
 ## Testes
 
@@ -215,6 +140,8 @@ Categorias cobertas:
 ### Consistência distribuída e ACID
 
 Os testes xUnit de integração usam uma única instância da API. Para validar o comportamento distribuído real, suba o Compose atual em um terminal:
+
+<img src="docs/img/gatling.png">
 
 ```bash
 docker compose up --build -d
